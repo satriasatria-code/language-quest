@@ -1,0 +1,635 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  .lq-root {
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+    padding: 1rem 0;
+    min-height: 600px;
+  }
+
+  /* ---- SCREENS ---- */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ---- WORLD MAP ---- */
+  .world-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .player-info { display: flex; align-items: center; gap: 12px; }
+  .avatar {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--bg-accent); color: var(--text-accent);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 500; font-size: 14px;
+  }
+  .player-name { font-weight: 500; font-size: 15px; }
+  .xp-bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .xp-label { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+  .xp-bar { width: 110px; height: 6px; background: var(--surface-1); border-radius: 99px; overflow: hidden; border: 0.5px solid var(--border); }
+  .xp-fill { height: 100%; background: var(--text-accent); border-radius: 99px; transition: width 0.5s; }
+  .streak-badge {
+    display: flex; align-items: center; gap: 4px;
+    background: var(--bg-warning); color: var(--text-warning);
+    border: 0.5px solid var(--border-warning);
+    border-radius: var(--radius); padding: 4px 10px; font-size: 12px; font-weight: 500;
+  }
+
+  .zones-title { font-size: 13px; color: var(--text-secondary); margin-bottom: 1rem; }
+  .zones-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;
+  }
+  .zone-card {
+    background: var(--surface-2); border: 0.5px solid var(--border);
+    border-radius: 12px; padding: 1rem 1.25rem;
+    cursor: pointer; transition: border-color 0.15s, transform 0.1s;
+    text-align: left;
+  }
+  .zone-card:hover { border-color: var(--border-strong); transform: translateY(-2px); }
+  .zone-card.locked { opacity: 0.45; cursor: not-allowed; }
+  .zone-card.locked:hover { transform: none; border-color: var(--border); }
+  .zone-card.completed { border-color: var(--border-success); }
+  .zone-icon { font-size: 28px; margin-bottom: 8px; }
+  .zone-name { font-weight: 500; font-size: 14px; margin-bottom: 2px; }
+  .zone-desc { font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; }
+  .zone-meta { display: flex; align-items: center; justify-content: space-between; }
+  .zone-stars { color: var(--text-warning); font-size: 12px; }
+  .zone-tag {
+    font-size: 11px; padding: 2px 8px; border-radius: var(--radius);
+    background: var(--bg-accent); color: var(--text-accent); font-weight: 500;
+  }
+  .zone-tag.done { background: var(--bg-success); color: var(--text-success); }
+  .zone-tag.locked { background: var(--surface-1); color: var(--text-muted); }
+
+  /* ---- GAME SCREEN ---- */
+  .game-header {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem;
+  }
+  .back-btn {
+    background: none; border: 0.5px solid var(--border-strong);
+    border-radius: var(--radius); padding: 6px 12px;
+    cursor: pointer; font-size: 13px; color: var(--text-primary);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .back-btn:hover { background: var(--surface-1); }
+  .game-title { font-weight: 500; font-size: 16px; }
+  .game-subtitle { font-size: 13px; color: var(--text-secondary); }
+
+  .progress-wrap { margin-bottom: 1.5rem; }
+  .progress-top { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+  .progress-bar { height: 6px; background: var(--surface-1); border-radius: 99px; border: 0.5px solid var(--border); overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 99px; transition: width 0.4s; }
+  .progress-fill.flash { background: var(--text-accent); }
+  .progress-fill.vocabs { background: var(--text-accent); }
+  .progress-fill.sentences { background: var(--text-success); }
+  .progress-fill.listening { background: var(--text-warning); }
+
+  /* ---- FLASHCARD GAME ---- */
+  .flashcard-wrap { text-align: center; padding: 1rem 0; }
+  .flashcard {
+    background: var(--surface-2); border: 0.5px solid var(--border);
+    border-radius: 12px; padding: 2.5rem 2rem; margin-bottom: 1.5rem;
+    min-height: 160px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 8px;
+  }
+  .flashcard-emoji { font-size: 40px; }
+  .flashcard-word { font-size: 28px; font-weight: 500; }
+  .flashcard-hint { font-size: 13px; color: var(--text-secondary); }
+  .choices-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .choice-btn {
+    background: var(--surface-2); border: 0.5px solid var(--border-strong);
+    border-radius: var(--radius); padding: 12px 16px;
+    cursor: pointer; font-size: 14px; color: var(--text-primary);
+    transition: all 0.12s; text-align: left;
+  }
+  .choice-btn:hover { background: var(--surface-1); }
+  .choice-btn.correct { background: var(--bg-success); border-color: var(--border-success); color: var(--text-success); }
+  .choice-btn.wrong { background: var(--bg-danger); border-color: var(--border-danger); color: var(--text-danger); }
+  .choice-btn:disabled { cursor: default; }
+
+  /* ---- SENTENCE BUILDER ---- */
+  .sentence-area {
+    min-height: 64px; background: var(--surface-1);
+    border: 0.5px dashed var(--border-strong); border-radius: var(--radius);
+    padding: 12px 16px; margin-bottom: 1rem;
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  }
+  .sentence-placeholder { font-size: 13px; color: var(--text-muted); font-style: italic; }
+  .word-token {
+    background: var(--bg-accent); color: var(--text-accent);
+    border: 0.5px solid var(--border-accent); border-radius: var(--radius);
+    padding: 4px 12px; font-size: 14px; cursor: pointer; font-weight: 500;
+    transition: opacity 0.1s;
+  }
+  .word-token:hover { opacity: 0.75; }
+  .word-token.placed { background: var(--surface-2); color: var(--text-secondary); border-color: var(--border); }
+  .word-bank { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1.5rem; }
+  .prompt-text { font-size: 15px; margin-bottom: 1rem; }
+  .prompt-text span { font-weight: 500; }
+
+  /* ---- LISTENING ---- */
+  .listening-wrap { text-align: center; }
+  .audio-btn {
+    width: 80px; height: 80px; border-radius: 50%;
+    background: var(--bg-accent); border: 2px solid var(--border-accent);
+    cursor: pointer; margin: 0 auto 1.5rem; display: flex;
+    align-items: center; justify-content: center; font-size: 28px;
+    transition: transform 0.1s;
+  }
+  .audio-btn:hover { transform: scale(1.05); }
+  .audio-btn.playing { background: var(--bg-success); border-color: var(--border-success); }
+  .listen-hint { font-size: 13px; color: var(--text-secondary); margin-bottom: 1.5rem; }
+
+  /* ---- RESULT ---- */
+  .result-wrap { text-align: center; padding: 1rem 0; }
+  .result-emoji { font-size: 52px; margin-bottom: 1rem; }
+  .result-title { font-size: 22px; font-weight: 500; margin-bottom: 6px; }
+  .result-desc { font-size: 14px; color: var(--text-secondary); margin-bottom: 1.5rem; }
+  .result-stats {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 1.5rem;
+  }
+  .stat-card {
+    background: var(--surface-1); border-radius: var(--radius); padding: 1rem;
+  }
+  .stat-val { font-size: 22px; font-weight: 500; }
+  .stat-lbl { font-size: 12px; color: var(--text-secondary); }
+  .result-btns { display: flex; gap: 10px; justify-content: center; }
+  .btn-primary {
+    background: var(--text-primary); color: var(--surface-2);
+    border: none; border-radius: var(--radius); padding: 10px 20px;
+    font-size: 14px; cursor: pointer; font-weight: 500;
+  }
+  .btn-primary:hover { opacity: 0.85; }
+  .btn-ghost {
+    background: none; border: 0.5px solid var(--border-strong);
+    border-radius: var(--radius); padding: 10px 20px;
+    font-size: 14px; cursor: pointer; color: var(--text-primary);
+  }
+  .btn-ghost:hover { background: var(--surface-1); }
+
+  .feedback-msg {
+    text-align: center; font-size: 14px; font-weight: 500;
+    min-height: 24px; margin-bottom: 1rem;
+  }
+  .feedback-msg.ok { color: var(--text-success); }
+  .feedback-msg.bad { color: var(--text-danger); }
+
+  .check-btn {
+    width: 100%; padding: 12px; border-radius: var(--radius);
+    background: var(--text-primary); color: var(--surface-2);
+    border: none; font-size: 14px; font-weight: 500; cursor: pointer;
+    transition: opacity 0.1s;
+  }
+  .check-btn:hover { opacity: 0.85; }
+  .check-btn:disabled { opacity: 0.35; cursor: default; }
+
+  .clear-btn {
+    background: none; border: 0.5px solid var(--border);
+    border-radius: var(--radius); padding: 6px 12px;
+    font-size: 12px; color: var(--text-secondary); cursor: pointer;
+    margin-bottom: 0.75rem;
+  }
+  .clear-btn:hover { background: var(--surface-1); }
+</style>
+
+<div class="lq-root">
+  <h2 class="sr-only">Language Quest — prototype interaktif belajar bahasa Inggris melalui mini-games</h2>
+
+  <!-- WORLD MAP -->
+  <div id="screen-map" class="screen active">
+    <div class="world-header">
+      <div class="player-info">
+        <div class="avatar">AK</div>
+        <div>
+          <div class="player-name">Adventurer</div>
+          <div class="xp-bar-wrap">
+            <div class="xp-label">Lv.3 — </div>
+            <div class="xp-bar"><div class="xp-fill" id="xp-fill" style="width:42%"></div></div>
+            <div class="xp-label" id="xp-text">210/500 XP</div>
+          </div>
+        </div>
+      </div>
+      <div class="streak-badge"><i class="ti ti-flame" aria-hidden="true" style="font-size:14px"></i> 5-day streak</div>
+    </div>
+
+    <div class="zones-title">Pilih zona untuk belajar:</div>
+    <div class="zones-grid">
+      <div class="zone-card" onclick="startGame('vocab')">
+        <div class="zone-icon">🃏</div>
+        <div class="zone-name">Flashcard Flip</div>
+        <div class="zone-desc">Tebak arti kosakata</div>
+        <div class="zone-meta">
+          <div class="zone-stars">★★★</div>
+          <div class="zone-tag">Vocabulary</div>
+        </div>
+      </div>
+      <div class="zone-card" onclick="startGame('sentence')">
+        <div class="zone-icon">🔤</div>
+        <div class="zone-name">Sentence Builder</div>
+        <div class="zone-desc">Susun kalimat yang benar</div>
+        <div class="zone-meta">
+          <div class="zone-stars">★★☆</div>
+          <div class="zone-tag">Grammar</div>
+        </div>
+      </div>
+      <div class="zone-card" onclick="startGame('listening')">
+        <div class="zone-icon">🔊</div>
+        <div class="zone-name">Listening Blitz</div>
+        <div class="zone-desc">Dengar & tebak kata</div>
+        <div class="zone-meta">
+          <div class="zone-stars">★★☆</div>
+          <div class="zone-tag">Listening</div>
+        </div>
+      </div>
+      <div class="zone-card locked">
+        <div class="zone-icon">🗣️</div>
+        <div class="zone-name">Speaking Quest</div>
+        <div class="zone-desc">Latih pengucapan</div>
+        <div class="zone-meta">
+          <div class="zone-stars">☆☆☆</div>
+          <div class="zone-tag locked"><i class="ti ti-lock" style="font-size:11px" aria-hidden="true"></i> Lv.5</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VOCAB GAME -->
+  <div id="screen-vocab" class="screen">
+    <div class="game-header">
+      <button class="back-btn" onclick="goMap()"><i class="ti ti-arrow-left" aria-hidden="true"></i> Peta</button>
+      <div>
+        <div class="game-title">Flashcard Flip</div>
+        <div class="game-subtitle">Tebak arti kata dalam Bahasa Indonesia</div>
+      </div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-top">
+        <span id="vocab-q-label">Soal 1 dari 5</span>
+        <span id="vocab-score-label">0 benar</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill vocabs" id="vocab-prog" style="width:0%"></div></div>
+    </div>
+    <div class="flashcard-wrap">
+      <div class="flashcard">
+        <div class="flashcard-emoji" id="vocab-emoji">🌸</div>
+        <div class="flashcard-word" id="vocab-word">Blossom</div>
+        <div class="flashcard-hint">noun / verb</div>
+      </div>
+      <div class="feedback-msg" id="vocab-feedback"></div>
+      <div class="choices-grid" id="vocab-choices"></div>
+    </div>
+  </div>
+
+  <!-- SENTENCE GAME -->
+  <div id="screen-sentence" class="screen">
+    <div class="game-header">
+      <button class="back-btn" onclick="goMap()"><i class="ti ti-arrow-left" aria-hidden="true"></i> Peta</button>
+      <div>
+        <div class="game-title">Sentence Builder</div>
+        <div class="game-subtitle">Susun kata-kata menjadi kalimat yang benar</div>
+      </div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-top">
+        <span id="sent-q-label">Soal 1 dari 4</span>
+        <span id="sent-score-label">0 benar</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill sentences" id="sent-prog" style="width:0%"></div></div>
+    </div>
+    <div class="prompt-text">Susun kalimat: <span id="sent-prompt"></span></div>
+    <div class="sentence-area" id="sent-area"><span class="sentence-placeholder" id="sent-placeholder">Klik kata di bawah untuk menyusun kalimat...</span></div>
+    <button class="clear-btn" onclick="clearSentence()"><i class="ti ti-refresh" aria-hidden="true" style="font-size:12px"></i> Reset</button>
+    <div class="word-bank" id="sent-bank"></div>
+    <div class="feedback-msg" id="sent-feedback"></div>
+    <button class="check-btn" id="sent-check" onclick="checkSentence()" disabled>Periksa jawaban</button>
+  </div>
+
+  <!-- LISTENING GAME -->
+  <div id="screen-listening" class="screen">
+    <div class="game-header">
+      <button class="back-btn" onclick="goMap()"><i class="ti ti-arrow-left" aria-hidden="true"></i> Peta</button>
+      <div>
+        <div class="game-title">Listening Blitz</div>
+        <div class="game-subtitle">Dengar audio dan pilih kata yang tepat</div>
+      </div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-top">
+        <span id="listen-q-label">Soal 1 dari 5</span>
+        <span id="listen-score-label">0 benar</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill listening" id="listen-prog" style="width:0%"></div></div>
+    </div>
+    <div class="listening-wrap">
+      <div class="audio-btn" id="audio-btn" onclick="playAudio()" role="button" aria-label="Putar audio">
+        <i class="ti ti-volume" style="font-size:28px; color:var(--text-accent)" aria-hidden="true"></i>
+      </div>
+      <div class="listen-hint" id="listen-hint">Tekan tombol di atas untuk mendengar kata</div>
+      <div class="choices-grid" id="listen-choices"></div>
+      <div class="feedback-msg" id="listen-feedback"></div>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="screen-result" class="screen">
+    <div class="result-wrap">
+      <div class="result-emoji" id="result-emoji">🏆</div>
+      <div class="result-title" id="result-title">Luar biasa!</div>
+      <div class="result-desc" id="result-desc">Kamu menyelesaikan Flashcard Flip dengan sempurna!</div>
+      <div class="result-stats">
+        <div class="stat-card">
+          <div class="stat-val" id="res-correct">5/5</div>
+          <div class="stat-lbl">Benar</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="res-xp">+80 XP</div>
+          <div class="stat-lbl">Diperoleh</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="res-stars">★★★</div>
+          <div class="stat-lbl">Bintang</div>
+        </div>
+      </div>
+      <div class="result-btns">
+        <button class="btn-primary" onclick="goMap()"><i class="ti ti-map" aria-hidden="true" style="font-size:14px"></i> Kembali ke peta</button>
+        <button class="btn-ghost" onclick="retryGame()"><i class="ti ti-refresh" aria-hidden="true" style="font-size:14px"></i> Ulangi</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const vocabData = [
+    { word: 'Blossom', emoji: '🌸', correct: 'Mekar / berkembang', choices: ['Layu / pudar', 'Mekar / berkembang', 'Beraroma', 'Menanam'] },
+    { word: 'Grateful', emoji: '🙏', correct: 'Bersyukur', choices: ['Sedih', 'Bersyukur', 'Marah', 'Bangga'] },
+    { word: 'Journey', emoji: '🗺️', correct: 'Perjalanan', choices: ['Perjalanan', 'Destinasi', 'Petualangan', 'Kenangan'] },
+    { word: 'Wisdom', emoji: '🦉', correct: 'Kebijaksanaan', choices: ['Kecerdasan', 'Pengetahuan', 'Kebijaksanaan', 'Keberanian'] },
+    { word: 'Flourish', emoji: '🌱', correct: 'Berkembang pesat', choices: ['Berkembang pesat', 'Tumbuh lambat', 'Layu', 'Mati'] },
+  ];
+
+  const sentenceData = [
+    { prompt: '"Saya suka membaca buku setiap hari"', words: ['I', 'love', 'reading', 'books', 'every', 'day'], answer: ['I', 'love', 'reading', 'books', 'every', 'day'] },
+    { prompt: '"Cuaca hari ini sangat cerah"', words: ['is', 'today', 'The', 'weather', 'very', 'sunny'], answer: ['The', 'weather', 'today', 'is', 'very', 'sunny'] },
+    { prompt: '"Dia belajar bahasa Inggris dengan tekun"', words: ['English', 'She', 'diligently', 'studies'], answer: ['She', 'studies', 'English', 'diligently'] },
+    { prompt: '"Kami pergi ke taman setiap minggu"', words: ['We', 'go', 'to', 'the', 'park', 'every', 'week'], answer: ['We', 'go', 'to', 'the', 'park', 'every', 'week'] },
+  ];
+
+  const listeningData = [
+    { word: 'Adventure', display: 'ADVENTURE', choices: ['Adventure', 'Furniture', 'Departure', 'Temperature'] },
+    { word: 'Beautiful', display: 'BEAUTIFUL', choices: ['Powerful', 'Beautiful', 'Wonderful', 'Grateful'] },
+    { word: 'Knowledge', display: 'KNOWLEDGE', choices: ['Acknowledge', 'Knowledge', 'Language', 'Manage'] },
+    { word: 'Challenge', display: 'CHALLENGE', choices: ['Balance', 'Silence', 'Challenge', 'Patience'] },
+    { word: 'Friendship', display: 'FRIENDSHIP', choices: ['Fellowship', 'Hardship', 'Friendship', 'Scholarship'] },
+  ];
+
+  let state = {
+    game: null, idx: 0, score: 0,
+    answered: false,
+    sentBuilt: [],
+    sentWordUsed: [],
+    xp: 210
+  };
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + id).classList.add('active');
+  }
+
+  function goMap() { showScreen('map'); }
+
+  function retryGame() { startGame(state.game); }
+
+  function startGame(type) {
+    state.game = type; state.idx = 0; state.score = 0; state.answered = false;
+    if (type === 'vocab') { showScreen('vocab'); renderVocab(); }
+    else if (type === 'sentence') { showScreen('sentence'); renderSentence(); }
+    else if (type === 'listening') { showScreen('listening'); renderListening(); }
+  }
+
+  function addXp(amount) {
+    state.xp = Math.min(state.xp + amount, 500);
+    const pct = Math.round((state.xp / 500) * 100);
+    document.getElementById('xp-fill').style.width = pct + '%';
+    document.getElementById('xp-text').textContent = state.xp + '/500 XP';
+  }
+
+  function showResult(correct, total, gameLabel) {
+    const pct = Math.round((correct / total) * 100);
+    let emoji = '🎉', title = 'Kerja bagus!', xpGain = 40;
+    if (pct === 100) { emoji = '🏆'; title = 'Sempurna!'; xpGain = 80; }
+    else if (pct >= 60) { emoji = '⭐'; title = 'Cukup bagus!'; xpGain = 50; }
+    else { emoji = '💪'; title = 'Terus berlatih!'; xpGain = 20; }
+    const stars = pct === 100 ? '★★★' : pct >= 60 ? '★★☆' : '★☆☆';
+    document.getElementById('result-emoji').textContent = emoji;
+    document.getElementById('result-title').textContent = title;
+    document.getElementById('result-desc').textContent = 'Kamu menyelesaikan ' + gameLabel + '!';
+    document.getElementById('res-correct').textContent = correct + '/' + total;
+    document.getElementById('res-xp').textContent = '+' + xpGain + ' XP';
+    document.getElementById('res-stars').textContent = stars;
+    addXp(xpGain);
+    showScreen('result');
+  }
+
+  // ---- VOCAB ----
+  function renderVocab() {
+    const d = vocabData[state.idx];
+    document.getElementById('vocab-emoji').textContent = d.emoji;
+    document.getElementById('vocab-word').textContent = d.word;
+    document.getElementById('vocab-q-label').textContent = 'Soal ' + (state.idx + 1) + ' dari ' + vocabData.length;
+    document.getElementById('vocab-score-label').textContent = state.score + ' benar';
+    document.getElementById('vocab-prog').style.width = Math.round((state.idx / vocabData.length) * 100) + '%';
+    document.getElementById('vocab-feedback').textContent = '';
+    document.getElementById('vocab-feedback').className = 'feedback-msg';
+    state.answered = false;
+    const choices = [...d.choices].sort(() => Math.random() - 0.5);
+    const grid = document.getElementById('vocab-choices');
+    grid.innerHTML = '';
+    choices.forEach(c => {
+      const btn = document.createElement('button');
+      btn.className = 'choice-btn';
+      btn.textContent = c;
+      btn.onclick = () => answerVocab(btn, c, d.correct);
+      grid.appendChild(btn);
+    });
+  }
+
+  function answerVocab(btn, chosen, correct) {
+    if (state.answered) return;
+    state.answered = true;
+    const all = document.querySelectorAll('#vocab-choices .choice-btn');
+    all.forEach(b => { b.disabled = true; if (b.textContent === correct) b.classList.add('correct'); });
+    const fb = document.getElementById('vocab-feedback');
+    if (chosen === correct) {
+      btn.classList.add('correct');
+      state.score++;
+      fb.textContent = '✓ Tepat sekali!'; fb.className = 'feedback-msg ok';
+    } else {
+      btn.classList.add('wrong');
+      fb.textContent = '✗ Jawaban benar: ' + correct; fb.className = 'feedback-msg bad';
+    }
+    setTimeout(() => {
+      state.idx++;
+      if (state.idx < vocabData.length) renderVocab();
+      else showResult(state.score, vocabData.length, 'Flashcard Flip');
+    }, 1100);
+  }
+
+  // ---- SENTENCE ----
+  function renderSentence() {
+    const d = sentenceData[state.idx];
+    document.getElementById('sent-q-label').textContent = 'Soal ' + (state.idx + 1) + ' dari ' + sentenceData.length;
+    document.getElementById('sent-score-label').textContent = state.score + ' benar';
+    document.getElementById('sent-prog').style.width = Math.round((state.idx / sentenceData.length) * 100) + '%';
+    document.getElementById('sent-prompt').textContent = d.prompt;
+    document.getElementById('sent-feedback').textContent = '';
+    document.getElementById('sent-feedback').className = 'feedback-msg';
+    document.getElementById('sent-check').disabled = true;
+    state.sentBuilt = [];
+    state.sentWordUsed = d.words.map(() => false);
+    state.answered = false;
+    const area = document.getElementById('sent-area');
+    area.innerHTML = '<span class="sentence-placeholder" id="sent-placeholder">Klik kata di bawah untuk menyusun kalimat...</span>';
+    const bank = document.getElementById('sent-bank');
+    bank.innerHTML = '';
+    const shuffled = [...d.words].sort(() => Math.random() - 0.5);
+    shuffled.forEach((w, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'word-token';
+      btn.textContent = w;
+      btn.dataset.word = w;
+      btn.dataset.origIdx = d.words.indexOf(w);
+      btn.onclick = () => addWord(btn, w);
+      bank.appendChild(btn);
+    });
+  }
+
+  function addWord(btn, word) {
+    if (state.answered) return;
+    btn.classList.add('placed');
+    btn.onclick = null;
+    state.sentBuilt.push(word);
+    const area = document.getElementById('sent-area');
+    const ph = document.getElementById('sent-placeholder');
+    if (ph) ph.remove();
+    const tok = document.createElement('span');
+    tok.className = 'word-token';
+    tok.textContent = word;
+    tok.onclick = () => {
+      if (state.answered) return;
+      tok.remove();
+      state.sentBuilt = state.sentBuilt.filter((v, i, a) => { const fi = a.indexOf(v); return fi !== state.sentBuilt.lastIndexOf(v) || v !== word; });
+      state.sentBuilt.splice(state.sentBuilt.lastIndexOf(word), 1);
+      btn.classList.remove('placed');
+      btn.onclick = () => addWord(btn, word);
+      if (state.sentBuilt.length === 0) {
+        area.innerHTML = '<span class="sentence-placeholder" id="sent-placeholder">Klik kata di bawah untuk menyusun kalimat...</span>';
+      }
+      document.getElementById('sent-check').disabled = state.sentBuilt.length === 0;
+    };
+    area.appendChild(tok);
+    document.getElementById('sent-check').disabled = false;
+  }
+
+  function clearSentence() {
+    state.sentBuilt = [];
+    document.getElementById('sent-area').innerHTML = '<span class="sentence-placeholder" id="sent-placeholder">Klik kata di bawah untuk menyusun kalimat...</span>';
+    document.getElementById('sent-bank').querySelectorAll('.word-token').forEach(btn => {
+      btn.classList.remove('placed');
+      const w = btn.dataset.word;
+      btn.onclick = () => addWord(btn, w);
+    });
+    document.getElementById('sent-check').disabled = true;
+    document.getElementById('sent-feedback').textContent = '';
+  }
+
+  function checkSentence() {
+    if (state.answered) return;
+    state.answered = true;
+    const d = sentenceData[state.idx];
+    const correct = d.answer.join(' ');
+    const given = state.sentBuilt.join(' ');
+    const fb = document.getElementById('sent-feedback');
+    const isOk = given.toLowerCase() === correct.toLowerCase();
+    if (isOk) {
+      state.score++;
+      fb.textContent = '✓ Benar! "' + correct + '"'; fb.className = 'feedback-msg ok';
+    } else {
+      fb.textContent = '✗ Yang benar: "' + correct + '"'; fb.className = 'feedback-msg bad';
+    }
+    document.getElementById('sent-check').disabled = true;
+    setTimeout(() => {
+      state.idx++;
+      if (state.idx < sentenceData.length) renderSentence();
+      else showResult(state.score, sentenceData.length, 'Sentence Builder');
+    }, 1400);
+  }
+
+  // ---- LISTENING ----
+  let synth = window.speechSynthesis;
+  let currentListenWord = '';
+
+  function renderListening() {
+    const d = listeningData[state.idx];
+    currentListenWord = d.word;
+    document.getElementById('listen-q-label').textContent = 'Soal ' + (state.idx + 1) + ' dari ' + listeningData.length;
+    document.getElementById('listen-score-label').textContent = state.score + ' benar';
+    document.getElementById('listen-prog').style.width = Math.round((state.idx / listeningData.length) * 100) + '%';
+    document.getElementById('listen-hint').textContent = 'Tekan tombol di atas untuk mendengar kata';
+    document.getElementById('listen-feedback').textContent = '';
+    document.getElementById('listen-feedback').className = 'feedback-msg';
+    document.getElementById('audio-btn').className = 'audio-btn';
+    state.answered = false;
+    const choices = [...d.choices].sort(() => Math.random() - 0.5);
+    const grid = document.getElementById('listen-choices');
+    grid.innerHTML = '';
+    choices.forEach(c => {
+      const btn = document.createElement('button');
+      btn.className = 'choice-btn';
+      btn.textContent = c;
+      btn.onclick = () => answerListen(btn, c, d.word);
+      grid.appendChild(btn);
+    });
+  }
+
+  function playAudio() {
+    if (!synth) return;
+    synth.cancel();
+    const utt = new SpeechSynthesisUtterance(currentListenWord);
+    utt.lang = 'en-US'; utt.rate = 0.85;
+    const btn = document.getElementById('audio-btn');
+    btn.className = 'audio-btn playing';
+    document.getElementById('listen-hint').textContent = 'Sedang diputar...';
+    utt.onend = () => {
+      btn.className = 'audio-btn';
+      document.getElementById('listen-hint').textContent = 'Pilih kata yang kamu dengar';
+    };
+    synth.speak(utt);
+  }
+
+  function answerListen(btn, chosen, correct) {
+    if (state.answered) return;
+    state.answered = true;
+    const all = document.querySelectorAll('#listen-choices .choice-btn');
+    all.forEach(b => { b.disabled = true; if (b.textContent === correct) b.classList.add('correct'); });
+    const fb = document.getElementById('listen-feedback');
+    if (chosen === correct) {
+      btn.classList.add('correct');
+      state.score++;
+      fb.textContent = '✓ Tepat!'; fb.className = 'feedback-msg ok';
+    } else {
+      btn.classList.add('wrong');
+      fb.textContent = '✗ Kata yang diucapkan: ' + correct; fb.className = 'feedback-msg bad';
+    }
+    setTimeout(() => {
+      state.idx++;
+      if (state.idx < listeningData.length) renderListening();
+      else showResult(state.score, listeningData.length, 'Listening Blitz');
+    }, 1200);
+  }
+</script>
